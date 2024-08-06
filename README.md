@@ -1,5 +1,5 @@
 # Sentiment Analysis via Twitter - MSDS Curriculum Project
-This project was completed as part of a graduate degree program and highlights using R and Pythong for different aspects of data analysis focusing on sentiment analysis. It also required gathering a stream of tweets via Tiwtter's REST API.
+This project was completed as part of a graduate degree program and highlights using R and Python for different aspects of data analysis focusing on sentiment analysis. It also required gathering a stream of tweets via Tiwtter's REST API.
 
 
 ## Files
