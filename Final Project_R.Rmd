@@ -1,0 +1,106 @@
+---
+title: "Final Project_R"
+author: "Korey Bernhardt"
+date: "12/11/2019"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+Load libraries
+
+```{r}
+library(dplyr)
+library(ggformula)
+library(readr)
+```
+
+**Read data**
+
+Pull in the data created from the Python program, and check the first few columns to make sure it's what's expected.
+
+```{r}
+tweets = read.csv("unique_tweets.csv",header=TRUE, sep=",",)
+head(tweets)
+```
+
+**Adjust data and add fields**
+
+In order to make the data a little more  user friendly, I changed the Sentiment column to hold Fan or Foe if the sentiment is positive or negative, respectively.  I also added a column to hold if the location has an NFL team as a Yes or No value based on the number of teams the location has.  I want both ways available to analyze the data.
+
+```{r}
+tweets = 
+  tweets %>%
+  mutate(HasNFLTeam = ifelse(team_count > 0,'Yes','No' ))%>%
+  mutate(FanSentiment = case_when(
+    sentiment == "positive" ~ "Fan",
+    sentiment == "negative" ~ "Foe",
+    TRUE ~ "Neutral"))
+```
+
+**Charting tweet volumen by location**
+
+I limited this to the top 10 locations by tweet volume to make it easier to read. 
+
+```{r}
+tweets_count_location =
+  tweets%>%
+  group_by(FanSentiment,location)%>%
+  summarise(location_count = n())%>%
+  top_n(10, location_count)%>%
+  mutate(location = reorder(location,-location_count))%>%
+  gf_col(location_count ~ location, fill=~FanSentiment,"dark green")%>%
+  gf_refine(scale_fill_manual(values = c("dark green","gold")))%>%
+  gf_labs(title = "Tweet Volume by State, Top 10", y="# Tweets", x = "State")
+
+tweets_count_location
+
+```
+**Charting Categories**
+
+I charted two ways of looking at things.  One based on state and whether the state had a NFL team.  The other based on state and how many NFL teams the state has. 
+
+```{r}
+tweets_by_location_hasteam =
+  tweets%>%
+  count(location, FanSentiment, HasNFLTeam, sort = TRUE)%>%
+  gf_col(n ~ HasNFLTeam,fill=~FanSentiment, position = 'dodge')%>%
+  gf_refine(scale_fill_manual(values = c("dark green","gold")))%>%
+  gf_labs(title = "Tweet Volume and Sentiment by NFL Team Presence", 
+          y="# Tweets", x = "NFL Team Presence?")
+  
+
+tweets_by_location_teamcount =
+  tweets%>%
+  count(location, FanSentiment, team_count, sort = TRUE)%>%
+  gf_col(n ~ team_count,fill=~FanSentiment,position = 'dodge')%>%
+  gf_refine(scale_fill_manual(values = c("dark green","gold")))%>%
+  gf_labs(title = "Tweet Volume and Sentiment by NFL Team Count", 
+          y="# Tweets", x = "Number of NFL Teams")
+
+tweets_by_location_hasteam   
+tweets_by_location_teamcount
+
+```
+
+**Hypothesis Test**
+
+The question I planned to answer was where are packer fans outside of Wisconsin located? I predicted they would be more heavily prevalent in locations that don’t have NFL teams as there is less of a “default” affiliation with a specific team.
+
+Null Hypotheses: There is no relationship between tweet sentiment for the packers and states having an NFL team.
+
+Alternative Hypothesis: There is a relationship between tweet sentiment for the packers and states having an NFL team.
+
+Using the chi-square test of independence, based on the data we have the null hypothesis cannot be rejected, and therefore there does not appear to be a relationship between tweet sentiment and states having an NFL team.
+
+```{r}
+chisq.test (tweets$FanSentiment, tweets$HasNFLTeam)
+chisq.test (tweets$FanSentiment, tweets$team_count)
+
+```
+```{r}
+write.csv(tweets,file="unique_tweets_R_updated.csv",row.names=FALSE,na="")
+```
+
